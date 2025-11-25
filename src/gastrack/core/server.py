@@ -9,7 +9,7 @@ from pathlib import Path
 
 # Import the API routes
 from src.gastrack.api.handlers import api_routes
-from src.gastrack.db.connection import init_db
+from src.gastrack.db.connection import init_db, get_db_connection, DB_PATH
 
 
 # Define the directory where the built frontend files reside using Path
@@ -21,12 +21,21 @@ STATIC_DIR = PROJECT_ROOT / "frontend" / "dist"
 async def homepage(request):
     return JSONResponse({"status": "ok", "message": "GasTrack API is running"})
 
+# Define the startup handler
+async def startup_event():
+    # 🚨 FIX 2: Only initialize if the file is missing to prevent constraint errors.
+    # This assumes init_db() performs both schema creation AND data insertion.
+    if not DB_PATH.exists():
+        conn = get_db_connection()
+        init_db(conn)
+        conn.close() 
+    # If the DB file exists, we assume it is already fully initialized.
 
 def get_app(): # <-- no arguments needed
     """Creates and returns the Starlette application instance."""
 
-    # Explicitly initialize the database upon app creation
-    init_db(conn=None)
+    ## Explicitly initialize the database upon app creation
+    #init_db(conn=None)
 
     # Define Core Routes
     routes = []
@@ -43,7 +52,8 @@ def get_app(): # <-- no arguments needed
 
     app = Starlette(
         debug=True,
-        routes=routes
+        routes=routes,
+        on_startup=[startup_event]
     )
     return app # <-- Returns the app instance
 
