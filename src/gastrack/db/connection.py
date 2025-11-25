@@ -1,12 +1,10 @@
 import duckdb
-import os
+from pathlib import Path
 
-# Define the path to the DuckDB database file
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "gastrack.duckdb")
-
-# Define the path to the SQL schema file
-SQL_SCHEMA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "init_schema.sql")
-
+# Define the paths relative to the current file
+BASE_DIR = Path(__file__).resolve().parent
+DB_PATH = BASE_DIR / "gastrack.duckdb"
+SQL_SCHEMA_PATH = BASE_DIR / "init_schema.sql"
 
 def get_db_connection():
     """Establishes and returns a DuckDB connection."""
@@ -17,8 +15,7 @@ def init_db(conn: duckdb.DuckDBPyConnection):
     """Initializes the database schema if tables do not exist."""
     print("Initializing DuckDB schema...")
     try:
-        with open(SQL_SCHEMA_PATH, 'r') as f:
-            sql_script = f.read()
+        sql_script = SQL_SCHEMA_PATH.read_text()
         
         # Execute the entire SQL script
         conn.execute(sql_script)
@@ -28,7 +25,7 @@ def init_db(conn: duckdb.DuckDBPyConnection):
 
 # This block ensures the database file and schema are created
 # the first time any component imports 'connection.py'
-if not os.path.exists(DB_PATH):
+if not DB_PATH.exists(): # Use Path.exists()
     print(f"Database file not found at {DB_PATH}. Creating and initializing...")
     conn = get_db_connection()
     init_db(conn)

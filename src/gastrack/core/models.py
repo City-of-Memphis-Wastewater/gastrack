@@ -6,11 +6,18 @@ from msgspec import Struct, field
 # Define the valid sample points based on your spreadsheet data
 SAMPLE_POINTS = Literal['Sheet 1', 'Sheet 2', 'Sheet 3', 'Sheet 4', 'Sheet 5', 'Sheet 6', 
                         'Inlet', 'Outlet']
+
+
 # --- Analyzer Data Model (Irregular TS) ---
-class AnalyzerReading(Struct):
-    id: uuid.UUID = uuid.uuid4()
+# Set kw_only=True to allow optional fields (with defaults) before required fields,
+# though we still enforce ordering below for clarity.
+class AnalyzerReading(Struct, kw_only=True): 
+    # REQUIRED FIELDS first (best practice)
     timestamp: datetime
-    sample_point: str
+    sample_point: SAMPLE_POINTS
+
+    # OPTIONAL FIELDS (with defaults)
+    id: uuid.UUID = field(default_factory=uuid.uuid4)
     o2_pct: Optional[float] = None
     co2_pct: Optional[float] = None
     h2s_ppm: Optional[float] = None
@@ -19,6 +26,8 @@ class AnalyzerReading(Struct):
     gross_cal_val_mj_m3: Optional[float] = None
     t_sensor_f: Optional[float] = None
     balance_n2_pct: Optional[float] = None
+
+    # Audit fields for data corrections/fudging (Q5)
     is_manual_override: bool = False
     override_note: Optional[str] = None
 

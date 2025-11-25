@@ -5,26 +5,49 @@ from starlette.applications import Starlette
 from starlette.routing import Route, Mount
 from starlette.staticfiles import StaticFiles
 from starlette.responses import JSONResponse
+from pathlib import Path 
+
+# Import the API routes
+from src.gastrack.api.handlers import api_routes
+
+
+# Define the directory where the built frontend files reside using Path
+SERVER_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = SERVER_DIR.parent.parent.parent
+STATIC_DIR = PROJECT_ROOT / "frontend" / "dist"
 
 # Placeholder for your API handlers
 async def homepage(request):
     return JSONResponse({"status": "ok", "message": "GasTrack API is running"})
 
-# Placeholder for static file serving (Svelte SPA)
-# The 'frontend' directory will contain your compiled Svelte build
-STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'frontend', 'dist')
 
-routes = [
-    Route("/", homepage),
-    # Add API routes here: /api/data, /api/calc, etc.
-    # Serve static assets (Svelte build)
-    Mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
-]
+def get_app(): # <-- no arguments needed
+    """Creates and returns the Starlette application instance."""
 
-app = Starlette(
-    debug=True,
-    routes=routes
-)
+    # Define Core Routes
+    routes = []
 
+    # Append the new API routes under a /api prefix
+    from src.gastrack.api.handlers import api_routes # Deferred import for circular dependency
+    api_mount = Mount("/api", routes=api_routes)
+    routes.append(api_mount)
+
+    # NOTE: Moving this after the API mount ensures API routes get precedence.
+    routes.append(
+        Mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
+    )
+
+    app = Starlette(
+        debug=True,
+        routes=routes
+    )
+    return app # <-- Returns the app instance
+
+# Note: Application lifecycle events (on_startup/on_shutdown) 
+# for database management are often defined here.
+
+# For now, we rely on the logic in src.gastrack.db.connection 
+# to lazily initialize the database file on first import.
+app = get_app()
 def run_server(port: int):
     uvicorn.run(app, host="127.0.0.1", port=port)
