@@ -1,0 +1,9 @@
+[project]
+name = "gastrack"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "msgspec>=0.20.0",
+]
