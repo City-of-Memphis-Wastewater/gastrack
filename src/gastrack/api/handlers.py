@@ -3,8 +3,9 @@ from starlette.responses import JSONResponse
 from starlette.routing import Route
 from starlette.exceptions import HTTPException
 from typing import List
-
+from dataclasses import asdict
 from msgspec import msgpack, ValidationError
+
 from src.gastrack.db import crud
 from src.gastrack.core.models import AnalyzerReading, DailyFlowInput, Factor
 
@@ -84,10 +85,13 @@ async def get_factors(request: Request):
         # and rely on the default JSON encoder for standard types. 
         # If performance is critical, we'd use starlette.responses.Response(encoded_data, media_type="application/x-msgpack").
 
-        # Using standard JSONResponse for wide compatibility
-        return JSONResponse([f.__dict__ for f in factors])
+        ## Using standard JSONResponse for wide compatibility
+        #return JSONResponse([f.__dict__ for f in factors])
+        # Use asdict() for dataclasses instead of __dict__
+        return JSONResponse([asdict(f) for f in factors])
         
     except Exception as e:
+        print(f"\n--- FATAL HANDLER EXCEPTION ---\nError during get_factors: {e}\n-------------------------------\n")
         raise HTTPException(status_code=500, detail=f"Could not retrieve factors: {e}")
 
 

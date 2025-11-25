@@ -9,6 +9,7 @@ from pathlib import Path
 
 # Import the API routes
 from src.gastrack.api.handlers import api_routes
+from src.gastrack.db.connection import init_db
 
 
 # Define the directory where the built frontend files reside using Path
@@ -23,6 +24,9 @@ async def homepage(request):
 
 def get_app(): # <-- no arguments needed
     """Creates and returns the Starlette application instance."""
+
+    # Explicitly initialize the database upon app creation
+    init_db(conn=None)
 
     # Define Core Routes
     routes = []
@@ -48,6 +52,7 @@ def get_app(): # <-- no arguments needed
 
 # For now, we rely on the logic in src.gastrack.db.connection 
 # to lazily initialize the database file on first import.
-app = get_app()
+
 def run_server(port: int):
-    uvicorn.run(app, host="127.0.0.1", port=port)
+    app_instance = get_app()
+    uvicorn.run(app_instance, host="127.0.0.1", port=port)

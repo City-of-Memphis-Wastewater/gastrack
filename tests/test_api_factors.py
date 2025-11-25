@@ -1,5 +1,11 @@
+# --- tests/test_api_factors.py ---
 import pytest
+import importlib
+import sys
+
 from src.gastrack.db.connection import DB_PATH
+import src.gastrack.db.connection
+
 
 # Ensure the database is clean before running tests that touch the DB
 @pytest.fixture(scope="module", autouse=True)
@@ -7,6 +13,14 @@ def setup_db_for_test():
     """Wipes and re-initializes the database for a clean test run."""
     if DB_PATH.exists():
         DB_PATH.unlink()
+
+    module_name = 'src.gastrack.db.connection'
+    if module_name in sys.modules:
+        importlib.reload(sys.modules[module_name])
+    else:
+        # Fallback for the first run, though the top-level import should cover this
+        import src.gastrack.db.connection
+    
     # The first import of crud or connection will trigger re-initialization
     import src.gastrack.db.crud
     
