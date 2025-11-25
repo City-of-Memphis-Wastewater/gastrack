@@ -74,22 +74,18 @@ async def get_factors(request: Request):
     try:
         factors: List[Factor] = crud.get_all_factors()
         
-        # 3. Serialization (from Python Structs back to the wire format)
-        # Use msgspec's encoding for consistency and speed
-        encoded_data = msgpack.encode(factors)
-
-        # Starlette handles Content-Type for JSONResponse, but msgpack is a binary format.
-        # Since we are using msgpack for encoding, we should return the raw binary data
-        # with the appropriate Content-Type header. 
-        # NOTE: For simple browser interaction, we'll stick to JSONResponse for now 
-        # and rely on the default JSON encoder for standard types. 
-        # If performance is critical, we'd use starlette.responses.Response(encoded_data, media_type="application/x-msgpack").
-
-        ## Using standard JSONResponse for wide compatibility
-        #return JSONResponse([f.__dict__ for f in factors])
-        # Use asdict() for dataclasses instead of __dict__
-        return JSONResponse([asdict(f) for f in factors])
-        
+        # 3. Serialization: Convert the list of Factor objects to a list of dicts
+        serializable_factors = [
+            {
+                "key": f.key,
+                "value": f.value,
+                "description": f.description
+            }
+            for f in factors
+        ]
+        # Pass the serializable list of dictionaries to JSONResponse
+        return JSONResponse(serializable_factors)
+    
     except Exception as e:
         print(f"\n--- FATAL HANDLER EXCEPTION ---\nError during get_factors: {e}\n-------------------------------\n")
         raise HTTPException(status_code=500, detail=f"Could not retrieve factors: {e}")

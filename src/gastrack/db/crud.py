@@ -1,6 +1,5 @@
 import uuid
 from typing import List
-
 import duckdb
 from msgspec import msgpack
 
