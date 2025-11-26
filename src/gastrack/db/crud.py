@@ -1,11 +1,14 @@
+# src/gastrack/db/crud.py
 import uuid
 from typing import List
-import duckdb
 from msgspec import msgpack
+from datetime import datetime
 
 from src.gastrack.db.connection import get_db_connection
 from src.gastrack.core.models import AnalyzerReading, DailyFlowInput, Factor
 
+
+''' # duckdb-style suppression
 # --- Helper Function for List Ingestion ---
 def _serialize_structs_to_tuples(data: List) -> List[tuple]:
     """
@@ -96,3 +99,63 @@ def get_all_factors() -> List[Factor]:
     # Convert tuples back to msgspec Factor Structs
     factors = [Factor(key=row[0], value=row[1], description=row[2]) for row in result]
     return factors
+
+'''
+
+def ingest_analyzer_readings(readings: List[AnalyzerReading]) -> int:
+    if not readings:
+        return 0
+
+    sql = """
+    INSERT INTO ts_analyzer_reading (
+        id, timestamp, sample_point, o2_pct, co2_pct, h2s_ppm, ch4_pct,
+        net_cal_val_mj_m3, gross_cal_val_mj_m3, t_sensor_f, balance_n2_pct,
+        is_manual_override, override_note
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """
+
+    data = [
+        (
+            str(r.id), r.timestamp.isoformat(), r.sample_point,
+            r.o2_pct, r.co2_pct, r.h2s_ppm, r.ch4_pct,
+            r.net_cal_val_mj_m3, r.gross_cal_val_mj_m3, r.t_sensor_f,
+            r.balance_n2_pct, int(r.is_manual_override), r.override_note
+        )
+        for r in readings
+    ]
+
+    with get_db_connection() as conn:
+        conn.executemany(sql, data)
+        return conn.rowcount
+
+
+def ingest_daily_flow_inputs(flows: List[DailyFlowInput]) -> int:
+    if not flows:
+        return 0
+
+    sql = """
+    INSERT OR REPLACE INTO daily_flow_input (
+        date, blower_1_scf_day, blower_2a_scf_day, blower_2b_scf_day,
+        blower_2c_scf_day, biorem_ambient_air_scf_day, biogas_flared_scf_day
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    """
+
+    data = [
+        (
+            f.date.isoformat() if hasattr(f.date, "isoformat") else f.date,
+            f.blower_1_scf_day, f.blower_2a_scf_day,
+            f.blower_2b_scf_day, f.blower_2c_scf_day,
+            f.biorem_ambient_air_scf_day, f.biogas_flared_scf_day
+        )
+        for f in flows
+    ]
+
+    with get_db_connection() as conn:
+        conn.executemany(sql, data)
+        return conn.rowcount
+
+
+def get_all_factors() -> List[Factor]:
+    with get_db_connection() as conn:
+        rows = conn.execute("SELECT key, value, description FROM factors").fetchall()
+    return [Factor(key=row["key"], value=row["value"], description=row["description"]) for row in rows]

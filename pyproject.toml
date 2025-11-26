@@ -11,7 +11,9 @@ dependencies = [
     "msgspec>=0.20.0",
     "pytest>=9.0.1",
     "rich>=14.2.0",
+    "starlette>=0.50.0",
     "typer>=0.20.0",
+    "uvicorn>=0.38.0",
 ]
 
 # Development Dependencies (PEP 621 Optional Dependencies)

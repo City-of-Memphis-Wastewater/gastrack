@@ -1,33 +1,74 @@
-import duckdb
+# --- src/gastrack/db/connection.py ---
+import sqlite3
+from contextlib import contextmanager
 from pathlib import Path
 
 # Define the paths relative to the current file
-BASE_DIR = Path(__file__).resolve().parent
-DB_PATH = BASE_DIR / "gastrack.duckdb"
-SQL_SCHEMA_PATH = BASE_DIR / "init_schema.sql"
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+DB_PATH = BASE_DIR / "gastrack.db"
+SQL_SCHEMA_PATH = BASE_DIR / "src" / "gastrack" / "db" / "init_schema.sql"
 
-def get_db_connection():
-    """Establishes and returns a DuckDB connection."""
-    # Use 'read_only=False' to allow writing
-    return duckdb.connect(database=DB_PATH, read_only=False)
-
-def init_db(conn: duckdb.DuckDBPyConnection):
-    """Initializes the database schema if tables do not exist."""
-    print("Initializing DuckDB schema...")
+'''
+@contextmanager
+def get_conn():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row          # gives dict-like rows (perfect for msgspec)
+    conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA journal_mode = WAL")   # safe concurrent writes
     try:
-        sql_script = SQL_SCHEMA_PATH.read_text()
-        
-        # Execute the entire SQL script
-        conn.execute(sql_script)
-        print("DuckDB schema initialized successfully.")
-    except Exception as e:
-        print(f"Error initializing database schema: {e}")
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+'''
 
-# This block ensures the database file and schema are created
-# the first time any component imports 'connection.py'
-if not DB_PATH.exists(): # Use Path.exists()
-    print(f"Database file not found at {DB_PATH}. Creating and initializing...")
-    conn = get_db_connection()
-    init_db(conn)
-    conn.close()
-    
+@contextmanager
+def get_db_connection():
+    """Public function – used everywhere in your code."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA journal_mode = WAL")
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+def init_db(conn=None):
+    """Public function – called from cli.py, server.py, tests, etc."""
+    close_when_done = conn is None
+    if conn is None:
+        conn = next(get_db_connection())
+
+    print("Initializing SQLite schema...")
+    schema_sql = SQL_SCHEMA_PATH.read_text()
+    conn.executescript(schema_sql)
+    print("SQLite schema initialized successfully.")
+
+    if close_when_done:
+        conn.close()
+
+
+# Auto-create DB + init exactly like your old DuckDB code
+if not DB_PATH.exists():
+    print(f"Database not found at {DB_PATH}. Creating and initializing...")
+    init_db()
+
+'''
+# Auto-create DB + run schema on first import (exactly like your old DuckDB code)
+if not DB_PATH.exists():
+    print(f"Database not found at {DB_PATH}. Creating and initializing...")
+    with get_db_connection() as conn:
+        schema_sql = SQL_SCHEMA_PATH.read_text()
+        conn.executescript(schema_sql)
+        print("SQLite database initialized successfully.")
+
+'''
