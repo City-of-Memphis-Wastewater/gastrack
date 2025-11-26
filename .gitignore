@@ -11,3 +11,6 @@ wheels/
 
 # JupyterLab env
 .ipynb_checkpoints/
+
+# Databasing
+*.db
