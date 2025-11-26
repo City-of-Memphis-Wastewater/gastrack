@@ -25,7 +25,9 @@ def run_command(cmd, cwd=None, check=True):
     if result.stdout:
         print(result.stdout)
     if result.stderr:
-        print(result.stderr, file=sys.stderr)
+        # Only print stderr if it's not a success and check is False, or if it contains error text
+        if check or "error" in result.stderr.lower():
+            print(result.stderr, file=sys.stderr)
     return result
 
 def clean_dist(dist_dir: Path):
@@ -41,25 +43,49 @@ def clean_dist(dist_dir: Path):
 def build_wheel(dist_dir: Path) -> Path:
     """
     Builds the Python Wheel for the gastrack package.
-    Assumes `pyproject.toml` or `setup.py` exists to define the package.
-    We rely on `build` to create the wheel in the `dist_dir`.
+    Attempts to use uv, then Poetry, then falls back to `python -m build`.
     """
     print("1. Building clean Python Wheel (no .pyc)…")
-    # Using the standard build module which respects PYTHONDONTWRITEBYTECODE=1
-    # We must ensure we are in the project root for this command to work.
     
-    # Assuming 'build' is installed (pip install build)
-    try:
-        run_command([PYTHON_BIN, "-m", "build", "--wheel", "--outdir", str(dist_dir)])
-    except subprocess.CalledProcessError:
-        print("ERROR: Failed to build wheel. Ensure the 'build' package is installed and pyproject.toml is correct.")
-        sys.exit(1)
+    # Check for uv
+    use_uv = shutil.which("uv") is not None and Path("pyproject.toml").exists()
+    # Check for Poetry (keep existing logic)
+    use_poetry = not use_uv and shutil.which("poetry") is not None and (Path("pyproject.toml").exists() or Path("setup.py").exists())
+    
+    if use_uv:
+        print("   Using uv to build wheel...")
+        try:
+            # uv build automatically handles pyproject.toml and outputs to dist/
+            run_command(["uv", "build"])
+        except subprocess.CalledProcessError:
+            print("ERROR: Failed to build wheel with uv. Ensure uv is installed and pyproject.toml is correct.")
+            sys.exit(1)
+            
+    elif use_poetry:
+        print("   Using Poetry to build wheel...")
+        try:
+            # Poetry automatically handles dependencies and pyproject.toml
+            run_command(["poetry", "build", "-f", "wheel", "--output", str(dist_dir)])
+        except subprocess.CalledProcessError:
+            print("ERROR: Failed to build wheel with Poetry. Ensure Poetry is configured correctly.")
+            sys.exit(1)
+            
+    else:
+        print("   Using python -m build (uv/Poetry not found/configured)...")
+        # Assuming 'build' is installed (pip install build)
+        try:
+            # Use the virtual environment's Python to run the build module
+            run_command([PYTHON_BIN, "-m", "build", "--wheel", "--outdir", str(dist_dir)])
+        except subprocess.CalledProcessError:
+            print("ERROR: Failed to build wheel with 'python -m build'. Ensure the 'build' package is installed in your virtual environment and pyproject.toml is correct.")
+            sys.exit(1)
 
+    # All build tools output the wheel to the 'dist' directory
     wheels = list(dist_dir.glob("*.whl"))
     if not wheels:
-        raise FileNotFoundError("No wheel built by python -m build.")
+        raise FileNotFoundError("No wheel built by the chosen build tool. Check your dist directory.")
     
-    # Find the latest built wheel
+    # Find the latest built wheel (essential when using uv which might build multiple formats)
     latest_wheel = max(wheels, key=lambda f: f.stat().st_mtime)
     print(f"   Built wheel: {latest_wheel.name}")
     return latest_wheel
