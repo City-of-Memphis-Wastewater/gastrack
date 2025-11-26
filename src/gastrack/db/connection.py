@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 # Define the paths relative to the current file
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 DB_PATH = BASE_DIR / "gastrack.db"
 SQL_SCHEMA_PATH = BASE_DIR / "src" / "gastrack" / "db" / "init_schema.sql"
 
@@ -46,18 +46,22 @@ def init_db(conn=None):
     """Public function – called from cli.py, server.py, tests, etc."""
     close_when_done = conn is None
     if conn is None:
-        conn = next(get_db_connection())
+        with get_db_connection() as conn:
+            _run_schema(conn)
+            return  # early return – connection auto-closes
 
+    _run_schema(conn)
+    if close_when_done:
+        conn.close()
+
+def _run_schema(conn):
     print("Initializing SQLite schema...")
     schema_sql = SQL_SCHEMA_PATH.read_text()
     conn.executescript(schema_sql)
     print("SQLite schema initialized successfully.")
 
-    if close_when_done:
-        conn.close()
 
-
-# Auto-create DB + init exactly like your old DuckDB code
+# Auto-create DB + init on first import
 if not DB_PATH.exists():
     print(f"Database not found at {DB_PATH}. Creating and initializing...")
     init_db()

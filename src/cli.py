@@ -5,6 +5,7 @@ from rich.console import Console
 
 # We'll use the main function from src.gastrack.core.server
 from src.gastrack.core.server import run_server
+from src.gastrack.db.connection import DB_PATH, init_db
 
 app = typer.Typer(help="GasTrack Command Line Interface for managing the server, database, and utilities.")
 console = Console()
@@ -29,27 +30,25 @@ def start(
 
 @app.command()
 def db_init():
-    """
-    Forces initialization of the DuckDB schema and inserts base factors.
-    """
-    from src.gastrack.db.connection import get_db_connection, init_db
-    
-    with get_db_connection() as conn:
-        init_db(conn)
-    console.print("[bold cyan]DuckDB initialized and base factors inserted.[/bold cyan]")
+    """Re-run schema + default factors (safe to run multiple times)."""
+    init_db()
+    console.print("[bold cyan]Database schema and default factors ensured.[/bold cyan]")
 
 @app.command()
 def db_clear():
-    """
-    Wipes the DuckDB database file.
-    """
-    from src.gastrack.db.connection import DB_PATH
+    """Delete the database file."""
     if DB_PATH.exists():
         DB_PATH.unlink()
-        console.print(f"[bold yellow]Database file wiped:[/bold yellow] {DB_PATH}")
+        console.print(f"[bold yellow]Database deleted:[/bold yellow] {DB_PATH}")
     else:
-        console.print("[bold yellow]No database file found to wipe.[/bold yellow]")
+        console.print("[bold yellow]No database file to delete.[/bold yellow]")
 
+@app.command()
+def db_path():
+    """Show where the database lives."""
+    console.print(f"Database path: {DB_PATH.resolve()}")
 
 if __name__ == "__main__":
     app()
+
+

@@ -1,4 +1,4 @@
--- DuckDB Schema for gastrack Project
+-- Schema for gastrack Project
 
 -- 1. Raw Time-Series Readings (ts_analyzer_reading)
 -- For irregular data from analyzer logs (O2, H2S, CH4, BTUs).
@@ -39,16 +39,17 @@ CREATE TABLE IF NOT EXISTS factors (
     description VARCHAR
 );
 
--- Insert initial compliance constants (based on Q4/BG Calcs)
-INSERT INTO factors (key, value, description) VALUES
+-- Insert initial compliance constants (based on Q4/BG Calcs) (idempotent)
+INSERT OR IGNORE INTO factors (key, value, description) VALUES
 ('HHV_PER_CH4_PCT', 10.4, 'HHV [BTU/scf]/100% CH4 - used for BTU calculation.'),
 ('H2S_PPM_TO_GRAINS_CCF_RATIO', 16.0, 'Conversion ratio for H2S ppm to grains/ccf (from E3 in Q4).');
 
 -- Add placeholder for Emission Factors. These need to be confirmed from the EmFactors sheet.
 -- Example factor placeholder (e.g., NOx factor from EmFactors!)
-INSERT INTO factors (key, value, description) VALUES
+INSERT OR IGNORE INTO factors (key, value, description) VALUES
 ('EMF_NOX_LBS_MMBTU', 0.05, 'Placeholder NOx Emission Factor for Flared Biogas (lbs/MMbtu).'),
 ('EMF_CO_LBS_MMBTU', 0.1, 'Placeholder CO Emission Factor for Flared Biogas (lbs/MMbtu).'),
 ('EMF_VOC_LBS_MMBTU', 0.03, 'Placeholder VOC Emission Factor for Flared Biogas (lbs/MMbtu).'),
 ('EMF_SO2_H2S_CONVERSION_FACTOR', 0.8, 'Placeholder H2S to SO2 Conversion Factor (80% efficiency for flare).');
+
 

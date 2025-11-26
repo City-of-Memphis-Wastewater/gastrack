@@ -26,7 +26,7 @@ def get_app(): # <-- no arguments needed
     """Creates and returns the Starlette application instance."""
 
     # Explicitly initialize the database upon app creation
-    init_db(conn=None)
+    init_db(conn=None) # it's this one, which was acutally hard won
 
     # Define Core Routes
     routes = []
