@@ -1,6 +1,6 @@
 [project]
 name = "gastrack"
-version = "0.1.1"
+version = "0.1.2"
 description = "Out with biogasCalcsV2.xlsx, in with gastrack.pyz."
 authors = [
     {name = "George Clayton Bennett", email = "george.bennett@memphistn.gov"}
