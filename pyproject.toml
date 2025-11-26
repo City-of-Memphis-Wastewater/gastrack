@@ -2,7 +2,9 @@
 name = "gastrack"
 version = "0.1.1"
 description = "Out with biogasCalcsV2.xlsx, in with gastrack.pyz."
-authors = ["George Clayton Bennett <george.bennett@memphistn.gov>"]
+authors = [
+    {name = "George Clayton Bennett", email = "george.bennett@memphistn.gov"}
+]
 license = "MIT"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -21,6 +23,52 @@ dependencies = [
     "uvicorn>=0.38.0",
 ]
 
+
+classifiers=[
+    # Development Status
+    "Development Status :: 3 - Alpha", # Assuming active development
+    
+    # Environment and Audience
+    "Environment :: Console",
+    "Environment :: Web Environment",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Manufacturing",
+    "Intended Audience :: End Users/Desktop",
+    "Intended Audience :: End Users/Business", # Operations/Management
+    "Intended Audience :: Field Engineers",    # Field Tech/Field Research
+    
+    # Deployment/Operating Systems
+    "Operating System :: OS Independent",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Android", # Covers Termux/Mobile Field Use
+    
+    # Licensing
+    "License :: OSI Approved :: MIT License",
+    
+    # Programming Languages (Backend & Frontend Stack)
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: JavaScript",
+    "Programming Language :: TypeScript",
+    "Programming Language :: Rust",
+    "Programming Language :: HTML :: 5",
+    
+    # Specific Topics (Covers Scientific, IoT, Networking, Monitoring)
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Topic :: Scientific/Engineering :: Bio-Informatics", # Biology/Biogas
+    "Topic :: Utilities",
+    "Topic :: System :: Monitoring",
+    "Topic :: System :: Networking", # Field LAN/Router Interfacing
+    "Topic :: System :: Hardware",   # Sensor Installation/IoT
+    "Topic :: Internet :: WWW/HTTP :: WSGI", # Closest standard classifier for ASGI/Starlette
+    "Topic :: Software Development :: Troubleshooting",
+]
+# other: Raspberry Pi, Node-Red, Node.js, JupyterLab for local dev on Termux, fast PYZ local app rollout via shiv
+
 # Development Dependencies (PEP 621 Optional Dependencies)
 [project.optional-dependencies]
 dev = [
@@ -28,17 +76,6 @@ dev = [
     "pytest-asyncio>=1.3.0",
 ]
 
-classifiers=[
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-    "Intended Audience :: Developers",
-    "Intended Audience :: System Administrators",
-    "Intended Audience :: Science/Research",
-    "Topic :: Scientific/Engineering :: Information Analysis",
-    "Topic :: Scientific/Engineering :: Visualization",
-    "Environment :: Console",
-]
 
 [build-system]
 requires = ["setuptools>=61.0.0", "wheel"]
