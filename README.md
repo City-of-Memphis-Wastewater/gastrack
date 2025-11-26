@@ -1,3 +1,11 @@
+### Install from source
+```bash
+git clone https://github.com/city-of-memphis-wastewater/gastrack.git
+cd gastrack
+uv sync
+source .venv/bin/activate
+```
+
 ### First time on a new machine / phone
 ```bash
 cd frontend && npm install && npm run build && cd ..
@@ -5,7 +13,7 @@ python -m src.main start
 ```
 
 
-### Running the app and then starting the node-red interface.
+### Runn the app and then start the node-red interface.
 #### Terminal 1 – start the Python API
 ```bash
 cd ~/dev/gastrack && source .venv/bin/activate && python -m src.cli start
