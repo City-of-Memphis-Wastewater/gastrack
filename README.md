@@ -13,7 +13,7 @@ python -m src.main start
 ```
 
 
-### Runn the app and then start the node-red interface.
+### Run the app and then start the node-red interface.
 #### Terminal 1 – start the Python API
 ```bash
 cd ~/dev/gastrack && source .venv/bin/activate && python -m src.cli start

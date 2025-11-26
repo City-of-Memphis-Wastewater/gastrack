@@ -5,12 +5,10 @@ description = "Out with biogasCalcsV2.xlsx, in with gastrack.pyz."
 authors = [
     {name = "George Clayton Bennett", email = "george.bennett@memphistn.gov"}
 ]
-license = "MIT"
+#license = "MIT"
 readme = "README.md"
 requires-python = ">=3.12"
-packages = [{ include = "gastrack", from = "src" }] # Enables `import gastrack`
-homepage = "https://github.com/city-of-memphis-wastewater/gastrack"
-repository = "https://github.com/city-of-memphis-wastewater/gastrack"
+# packages = [{ include = "gastrack", from = "src" }] # Enables `import gastrack` # fails on uv sync
   
 # Standard Dependencies (PEP 621)
 dependencies = [
@@ -93,3 +91,7 @@ pythonpath = [
 # Add this line to tell pytest-asyncio to enable the event loop 
 # for the session-scoped async fixtures
 asyncio_mode = "auto"
+
+[project.urls]
+Homepage = "https://github.com/city-of-memphis-wastewater/gastrack"
+Repository = "https://github.com/city-of-memphis-wastewater/gastrack"
