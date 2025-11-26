@@ -10,7 +10,10 @@ wheels/
 .venv
 
 # JupyterLab env
-.ipynb_checkpoints/
+**/.ipynb_checkpoints/
 
 # Databasing
 *.db
+
+# Node-red
+**/node_modules/
