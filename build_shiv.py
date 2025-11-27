@@ -16,12 +16,43 @@ PYTHON_BIN = sys.executable
 # Format: package.module:function
 ENTRY_POINT = f"{PROJECT_NAME}.core.server:get_app" 
 
+# --- Helper Functions ---
+
+def _get_site_packages_path():
+    """
+    Attempts to robustly determine the site-packages directory
+    of the currently active Python environment (virtual environment).
+    """
+    # 1. Check if we are in a virtual environment
+    is_venv = hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix)
+    if not is_venv:
+        return None 
+    
+    venv_root = Path(sys.prefix)
+    
+    # 2. Typical Linux/macOS path: venv/lib/pythonX.Y/site-packages
+    lib_dir = venv_root / "lib"
+    python_version_dir = f"python{sys.version_info.major}.{sys.version_info.minor}"
+    site_packages = lib_dir / python_version_dir / "site-packages"
+    
+    if site_packages.is_dir():
+        return str(site_packages)
+
+    # 3. Fallback for Windows/others: venv/Lib/site-packages
+    site_packages_win = venv_root / "Lib" / "site-packages"
+    if site_packages_win.is_dir():
+        return str(site_packages_win)
+        
+    return None 
+
+
 # --- Build Steps ---
 
-def run_command(cmd, cwd=None, check=True):
-    """Run command, print it, capture output, raise on error."""
+def run_command(cmd, cwd=None, check=True, env=None):
+    """Run command, print it, capture output, raise on error. Accepts optional env dict."""
     print(f"\nRunning: {' '.join(cmd)}")
-    result = subprocess.run(cmd, cwd=cwd, text=True, capture_output=True, check=check)
+    # Pass the optional env dictionary to subprocess.run
+    result = subprocess.run(cmd, cwd=cwd, text=True, capture_output=True, check=check, env=env)
     if result.stdout:
         print(result.stdout)
     if result.stderr:
@@ -121,21 +152,38 @@ def build_shiv(wheel_path: Path, entry_point: str, out_path: Path):
     """
     print(f"3. Building Shiv executable → {out_path.name}")
     
+    # Explicit check for the shiv executable
+    if not shutil.which("shiv"):
+        print("\n" + "="*70)
+        print("CRITICAL ERROR: 'shiv' executable not found in your PATH.")
+        print("Please ensure you have installed shiv (e.g., `pip install shiv`).")
+        print("If installed, ensure your virtual environment is active.")
+        print("="*70)
+        sys.exit(1)
+    
     # Use PYTHONDONTWRITEBYTECODE to ensure no .pyc files are written during shiv creation
     env = os.environ.copy()
     env["PYTHONDONTWRITEBYTECODE"] = "1"
+    
+    site_packages_path = _get_site_packages_path()
+    site_packages_arg = ["--site-packages", site_packages_path] if site_packages_path else []
+
+    if site_packages_path:
+        print(f"   Using --site-packages from VENV: {site_packages_path}")
     
     # The --pre-zip-dir flag maps the local frontend/dist folder 
     # to the 'static' directory inside the zip file.
     cmd = [
         "shiv",
         str(wheel_path),
+        "--no-deps", # <-- New: Tell shiv to ignore wheel dependencies and rely on site-packages
         "-e", entry_point,
         "-o", str(out_path),
         "-p", "/usr/bin/env python3", # Standard Linux/macOS shebang
         "--compressed",
         "--pre-zip-dir", f"{FRONTEND_DIST_DIR}:static", # Map frontend/dist to static/
-        "--no-cache" # Do not bake .pyc—cache at runtime (faster build, smaller file)
+        "--no-cache", # Do not bake .pyc—cache at runtime (faster build, smaller file)
+        *site_packages_arg # Include the site-packages argument if found
     ]
     
     try:
@@ -145,7 +193,8 @@ def build_shiv(wheel_path: Path, entry_point: str, out_path: Path):
         print("To run, execute:")
         print(f"   ./{out_path.name}")
     except subprocess.CalledProcessError:
-        print("ERROR: Failed to build shiv executable. Ensure 'shiv' is installed (pip install shiv).")
+        print("ERROR: Failed to build shiv executable. This usually indicates an issue with 'shiv' itself or dependency resolution inside the archive.")
+        print("Since you are using '--site-packages', this might be due to native code dependencies (like msgspec) being included incorrectly. The '--no-deps' flag has been added as a common fix for this scenario.")
         sys.exit(1)
 
 
