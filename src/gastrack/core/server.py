@@ -1,36 +1,36 @@
 # src/gastrack/core/server.py
+import uvicorn
 import os
+from pathlib import Path 
 from starlette.applications import Starlette
-from starlette.routing import Route
+from starlette.routing import Route, Mount
 from starlette.staticfiles import StaticFiles
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
-from starlette.responses import HTMLResponse
+from starlette.responses import JSONResponse
 
+
+# Import the API routes
 from src.gastrack.api.handlers import api_routes
+from src.gastrack.db.connection import init_db
 
-# Determine the base path for static files.
-# When run from a PYZ file, __file__ points to the file *inside* the archive.
-# The static files (built Svelte app) should be alongside the module's directory.
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# The frontend assets are expected to be in a 'static' directory within the zip/package
-STATIC_DIR = os.path.join(BASE_DIR, 'static') 
-# In a typical dev setup, the base path is up two levels from core/server.py
-# We can add checks here to detect PYZ mode if needed, but relative path is often enough.
 
+# Define the directory where the built frontend files reside using Path
+SERVER_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = SERVER_DIR.parent.parent.parent
+STATIC_DIR = PROJECT_ROOT / "frontend" / "dist"
+
+# Placeholder for your API handlers
 async def homepage(request):
-    """Serves the index.html from the Svelte build."""
-    index_path = os.path.join(STATIC_DIR, 'index.html')
-    if os.path.exists(index_path):
-        with open(index_path, 'r') as f:
-            content = f.read()
-        return HTMLResponse(content)
-    # Fallback for when the build hasn't happened or paths are wrong
-    return HTMLResponse("<h1>GasTrack Backend Running</h1><p>Frontend assets not found. Run 'cd frontend && npm run build' and rebuild the PYZ file.</p>")
+    return JSONResponse({"status": "ok", "message": "GasTrack API is running"})
 
 
-def get_app():
-    """Initializes and returns the Starlette application."""
+def get_app(): # <-- no arguments needed
+    """Creates and returns the Starlette application instance."""
+
+    # Explicitly initialize the database upon app creation
+    init_db(conn=None) # it's this one, which was acutally hard won
+
     # Define middleware, especially for development CORS if needed
     middleware = [
         Middleware(
@@ -41,37 +41,32 @@ def get_app():
         )
     ]
 
-    routes = [
-        # Route for the single page application (serves index.html)
-        Route("/", homepage),
-        # API routes from handlers.py
-        *api_routes
-    ]
+    # Define Core Routes
+    routes = []
+
+    # Append the new API routes under a /api prefix
+    from src.gastrack.api.handlers import api_routes # Deferred import for circular dependency
+    api_mount = Mount("/api", routes=api_routes)
+    routes.append(api_mount)
+
+    # NOTE: Moving this after the API mount ensures API routes get precedence.
+    routes.append(
+        Mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
+    )
 
     app = Starlette(
         routes=routes,
         middleware=middleware,
         debug=True # Set to False for production PYZ file
     )
+    return app # <-- Returns the app instance
 
-    # Mount the StaticFiles handler to serve Svelte assets (JS, CSS, etc.)
-    # The 'static' directory must exist in the PYZ file or on disk.
-    app.mount('/static', StaticFiles(directory=STATIC_DIR), name='static')
-    
-    return app
+# Note: Application lifecycle events (on_startup/on_shutdown) 
+# for database management are often defined here.
 
-if __name__ == '__main__':
-    # This is often used only for local development/testing
-    import uvicorn
-    # In development, the static directory is usually frontend/dist
-    dev_static_dir = os.path.join(os.path.dirname(BASE_DIR), 'frontend', 'dist')
-    
-    # Simple check to use the correct static path for development
-    if os.path.exists(dev_static_dir) and not os.environ.get('GASTRACK_PYZ_MODE'):
-        print(f"Running in Development Mode, serving from: {dev_static_dir}")
-        STATIC_DIR = dev_static_dir
-        app = get_app()
-    else:
-        app = get_app()
-        
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+# For now, we rely on the logic in src.gastrack.db.connection 
+# to lazily initialize the database file on first import.
+
+def run_server(port: int):
+    app_instance = get_app()
+    uvicorn.run(app_instance, host="127.0.0.1", port=port)
