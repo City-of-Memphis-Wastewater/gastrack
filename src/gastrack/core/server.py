@@ -13,7 +13,7 @@ from starlette.responses import JSONResponse
 # Import the API routes
 from src.gastrack.api.handlers import api_routes
 from src.gastrack.db.connection import init_db
-
+from src.gastrack.core.environment import is_production_build
 
 # Define the directory where the built frontend files reside using Path
 SERVER_DIR = Path(__file__).resolve().parent
@@ -24,10 +24,11 @@ STATIC_DIR = PROJECT_ROOT / "frontend" / "dist"
 async def homepage(request):
     return JSONResponse({"status": "ok", "message": "GasTrack API is running"})
 
-
 def get_app(): # <-- no arguments needed
     """Creates and returns the Starlette application instance."""
 
+    debug = not is_producton_build()
+    
     # Explicitly initialize the database upon app creation
     init_db(conn=None) # it's this one, which was acutally hard won
 
@@ -57,7 +58,7 @@ def get_app(): # <-- no arguments needed
     app = Starlette(
         routes=routes,
         middleware=middleware,
-        debug=True # Set to False for production PYZ file
+        debug=debug # Set to False for production PYZ file
     )
     return app # <-- Returns the app instance
 

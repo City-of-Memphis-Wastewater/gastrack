@@ -183,6 +183,7 @@ def build_shiv(wheel_path: Path, entry_point: str, out_path: Path):
         "--compressed",
         "--pre-zip-dir", f"{FRONTEND_DIST_DIR}:static", # Map frontend/dist to static/
         "--no-cache", # Do not bake .pyc—cache at runtime (faster build, smaller file)
+        "--build-id", "production",
         *site_packages_arg # Include the site-packages argument if found
     ]
     
