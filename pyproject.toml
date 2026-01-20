@@ -14,6 +14,7 @@ requires-python = ">=3.12"
 dependencies = [
     "httpx>=0.28.1",
     "msgspec>=0.20.0",
+    "pyhabitat>=1.0.44",
     "pytest>=9.0.1",
     "rich>=14.2.0",
     "starlette>=0.50.0",
